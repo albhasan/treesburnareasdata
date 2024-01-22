@@ -1,0 +1,14 @@
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/accumulated_deforestation_2007_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/forest_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/cloud_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/hydrography_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/forest_biome_2016.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/no_forest_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/forest_biome_2017.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/residual_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/forest_biome_2018.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/yearly_deforestation_biome.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/forest_biome_2019.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/yearly_deforestation_biome_valid.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/vector/forest_biome_2020.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/amz-prodes/raster/PDigital2000_2021_AMZ_raster_v20220915_bioma.zip

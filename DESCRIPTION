@@ -1,0 +1,17 @@
+Package: treesburnareasdata
+Title: Deforestation warning data
+Version: 0.0.0.9001
+Authors@R: 
+    person("Alber", "Sanchez", , "alber.ipia@inpe.br", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-7966-2880"))
+Description: This project contains the data analysed by the treesburnedareas
+    package. These data is based on the Early Deforestation Warning System 
+    (DETER) of the National Institute for Space Research (INPE). These data
+    includes the deforestation warning in the brazilian Amazon since 2016.
+Depends: R (>= 4.0.0)
+URL: https://github.com/albhasan/treesburnareasdata
+BugReports: https://github.com/albhasan/treesburnareasdata/issues
+License: MIT + file LICENSE 
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.0

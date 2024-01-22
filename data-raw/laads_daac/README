@@ -1,0 +1,8 @@
+Scripts for downloading scientific data from 
+https://ladsweb.modaps.eosdis.nasa.gov/tools-and-services/data-download-scripts
+
+The script that checks for required software was taken from:
+https://raymii.org/s/snippets/Bash_Bits_Check_if_command_is_available.html
+
+Last update 2022/09/29
+

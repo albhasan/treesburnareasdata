@@ -1,0 +1,316 @@
+#!/usr/bin/perl
+# This script simulates the interactive behavior of the ftp tool that is
+# available on linux machines, but uses HTTP instead of FTP to communicate
+# with the server. Since it uses only core perl modules, it should run
+# anywhere that perl is available.
+#
+# NOTE: this script does use the "curl" command for downloading
+#       resources from the server. You must have curl installed on
+#       your system.
+#
+#       curl is available from https://curl.haxx.se/
+use strict;
+use warnings;
+
+use Cwd;
+use File::Basename;
+use File::Path qw(make_path);
+use JSON::PP;
+use Term::ReadLine;
+use Term::ANSIColor qw(:constants :pushpop);
+
+my $http_url = "https://ladsweb.modaps.eosdis.nasa.gov/archive/allData";
+
+my $pwd = '/';
+
+# check earthdata token
+my $TOKEN = undef;
+if(0 != loadToken()){
+  saveToken();
+}
+
+help();
+
+my $TERM = Term::ReadLine->new('GFTP');
+
+while(1){
+#  print "$pwd>";
+#  my $input = <>;
+  $TERM->ornaments(0);
+  my $input = $TERM->readline("$pwd> ");
+  chomp $input;
+  my @parms = split(/\s+/, $input);
+  my $cmd = lc(shift @parms) if scalar @parms;
+  next unless $cmd;
+
+  if("$cmd" eq "q" or "$cmd" eq "exit" or "$cmd" eq "bye"){
+    last;
+  }
+
+  if("$cmd" eq "ls"){
+    my $dir = $parms[0];
+    $dir = '.' unless $dir;
+
+    my $pattern = '';
+    if($dir =~ /\*$/){
+      my $dir2 = dirname($dir);
+      $pattern = basename($dir);
+
+      $pattern =~ s/\*//g;
+      $dir = $dir2;
+    }
+
+    my $src = normalize_path($pwd, $dir);
+    my ($files, $dirs) = check($src, [$pattern]);
+    if (! defined $files && ! defined $dirs) {
+      print "no such directory: $src\n";
+      next;
+    }
+    else {
+      foreach (@$dirs){
+        print BLUE, "$_\n", RESET;
+      }
+
+      foreach (@$files){
+        print "$_\n";
+      }
+    }
+  } # ls
+
+  elsif("$cmd" eq "cd"){
+    $pwd = normalize_path($pwd, $parms[0]);
+  } # cd
+
+  elsif("$cmd" eq "lcd"){
+    my $dir = @parms[0];
+    if (! -r $dir ){
+      print RED, "Error: local dir [$dir] not exists.\n", RESET;
+    }
+    else{
+      chdir $dir;
+    }
+  } # lcd
+
+  elsif("$cmd" eq "pwd"){
+    print "[$pwd]\n";
+  } #pwd
+
+  elsif("$cmd" eq "lpwd"){
+    print "Now in local dir: [", cwd(), "]\n";
+  } #lpwd
+
+  elsif("$cmd" eq "get"){
+    print "[get] : no file specified." if scalar @parms < 1;
+    foreach my $item (@parms){
+      my $src = $pwd;
+
+      if($item =~ m|^/|){
+        my @parts = split(m|/+|, normalize_path($pwd, $item));
+        $item = pop @parts;
+        $src = join('/', @parts);
+        $src = '/' unless $src;
+      }
+      http_get($src, [$item]);
+    }
+  } # get
+  
+  elsif("$cmd" eq "mget"){
+    @parms = ('.*') unless @parms and scalar @parms > 0;
+    http_get($pwd, [@parms], 1);
+  } # mget
+
+  elsif("$cmd" eq "token"){
+    saveToken();
+  } # token
+  
+  elsif("$cmd" eq "?"){
+    help();
+  } #?
+
+  print "\n";
+}
+
+exit;
+
+# remove .. and . directory pieces from the path so that it is in normalized form.
+sub normalize_path
+{
+  my ($current_working_dir, $path) = @_;
+  $path = '.' unless $path;
+  my $nocheck = 0;
+  
+  #remove trailing '/'
+  $current_working_dir =~ s|/+$||;
+  $path =~ s|/+$||;
+  
+  my $_pwd = $current_working_dir;
+  if($path =~ m|^/|){
+    $_pwd = $path;
+  }
+  elsif($path eq '.'){
+    $nocheck=1;
+  }
+  else{
+    $_pwd = join('/', $_pwd, $path);
+  }
+
+  # handle requests for parent directories
+  if($_pwd =~ /\.\./){
+    while ((my $pos = index($_pwd, '..')) >= 0) {
+      my $start = rindex($_pwd, '/', $pos-2);
+      $start = 0 unless $start >= 0;
+      my $new_dir = substr($_pwd, 0, $start);
+      $pos += 2;
+      my $end_str = substr($_pwd, $pos);
+      $new_dir = join('', $new_dir, $end_str) if $end_str;
+      $_pwd = $new_dir;
+    }
+  }
+  # handle requests for current directories
+  $_pwd =~ s|^\./||;
+  while ($_pwd =~ m|/\./|) {
+    $_pwd =~ s|/\./|/|g;
+  }
+  $_pwd =~ s|/\.$||;
+  $_pwd = '/' unless $_pwd;
+
+  if($nocheck || defined check($_pwd)) {
+    return $_pwd;
+  }
+  
+  print RED, "Error: [$_pwd] not exists.\n", RESET;
+  return $current_working_dir;
+}
+
+# get the contents of a directory
+sub check
+{
+  my ($from, $patterns) = @_;
+  die "no from" unless $from;
+  $patterns = [''] unless $patterns && scalar @$patterns;
+  
+  my $json_str=`curl -s -H "Authorization: Bearer $TOKEN" "${http_url}/${from}.json"`;
+  if ($json_str =~ /</)
+  {
+    return undef;  # got html, probably an error page
+  }
+  my $json = decode_json($json_str);
+    
+  my $files = [];
+  my $dirs = [];
+  foreach my $row (@{$json}) {
+    if ($row->{size} == 0) {
+      foreach my $regex (@$patterns) {
+        chomp $regex;
+        $regex = '.*' unless $regex;
+        push @$dirs, $row->{name} if $row->{name} =~ /$regex/;
+      }
+    }
+    else {
+      foreach my $regex (@$patterns) {
+        chomp $regex;
+        $regex = '.*' unless $regex;
+        push @$files, $row->{name} if $row->{name} =~ /$regex/;
+      }
+    }
+  }
+
+  return ($files, $dirs);
+}
+
+# get the specified file(s) from the specified directory
+sub http_get
+{
+  my ($from, $patterns, $recursive) = @_;
+  die "no from" unless $from;
+  my ($files, $dirs) = check($from, $patterns);
+  foreach my $file (@$files){
+    print("fetching $from/$file\n");
+    my $out_location = "$from";
+    $out_location =~ s|^/||;
+    if (-d $out_location) {
+      $out_location = "$out_location/$file";
+    }
+    else {
+      $out_location = $file;
+    }
+    my $cmd = join(' ',
+      'curl',
+      qq{-o "$out_location"},
+      '-s',
+      qq{-H "Authorization: Bearer $TOKEN"},
+      qq{"$http_url/$from/$file"},
+    );
+    my $result = system($cmd);
+    if ($result != 0) {
+      print RED, "FAIL: $cmd\n", RESET;
+    }
+  }
+  if ($recursive) {
+    foreach my $dir (@$dirs){
+      # this is recursive and can get a LOT of files, so ask user and make sure
+      # it's what they want.
+      print GREEN, "    $dir is a directory. Download all matching files from it?[ynq]> ", RESET;
+      my $input = $TERM->readline();
+      chomp $input;
+      if ($input =~ /^[yY]/) {
+        my $path = "$from/$dir";
+        $path =~ s|^/||;
+        make_path($path) unless -d $path;
+        http_get("/$path", $patterns, $recursive);
+      }
+      last if $input =~ /^[qQ]/;
+    }
+  }
+}
+
+# load the URS authentication token from special file if there is one
+sub loadToken{
+  my $home = glob('~/');
+  my $tokenFile = "$home/.earthdatatoken";
+
+  if(-r $tokenFile){
+    open (IN, '<', $tokenFile)||die "Can't open $tokenFile: $!\n";
+    $TOKEN = <IN>;
+    chomp $TOKEN;
+    close(IN);
+    print "Token loaded: [$TOKEN].\n";
+    return 0;
+  }
+  else{
+    return 9;
+  }
+}
+
+# prompt user for token, and save it in special file
+sub saveToken{
+  my $home = glob('~/');
+  my $tokenFile = "$home/.earthdatatoken";
+
+  print "Input token:\n";
+  $TOKEN = <>;
+  chomp($TOKEN);
+  open (OUT, '>', $tokenFile)||die "Can't open $tokenFile: $!\n";
+  print OUT "$TOKEN\n";
+  close(OUT);
+  print "Token saved.\n";
+}
+
+# print out command menu
+sub help{
+  print "Supported cmd: [ls] [cd] [lcd] [pwd] [lpwd] [get] [mget] [token] [q]\n";
+  print "[ls]: list dirs and files in remote dir\n";
+  print "[cd]: go to remote dir\n";
+  print "[lcd]: go to local dir\n";
+  print "[pwd]: print the current remote dir\n";
+  print "[lpwd]: print the current local dir\n";
+  print "[get]: download one or more specified files to current local dir\n";
+  print "[mget]: download files that match a pattern to current local dir.\n";
+  print "        Don't use *; e.g.: mget h12v04; mget hdf\n";
+  print "        Will also recursively download files from matching subdirectories.\n";
+  print "[token]: change token\n";
+  print "[q]: quit\n";
+  print "[?]: show help message\n";
+}
+
+0;

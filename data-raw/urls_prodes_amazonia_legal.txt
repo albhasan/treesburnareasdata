@@ -1,0 +1,10 @@
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/accumulated_deforestation_2007.zip          
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/forest.zip  
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/hydrography.zip  
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/yearly_deforestation.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/yearly_deforestation_2022_pri.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/cloud.zip   
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/cloud_2022_pri.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/no_forest.zip    
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/vector/residual.zip
+http://terrabrasilis.dpi.inpe.br/download/dataset/legal-amz-prodes/raster/PDigital2000_2021_AMZ_raster_v20220915.zip
