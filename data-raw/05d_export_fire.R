@@ -33,7 +33,8 @@ fire_sf <-
                   year = compute_prodes_year(datahora)) %>%
     dplyr::arrange(xy_id, datahora, prodes_date)
 
-# Check for non-utf8 characters.
+
+#---- TODO: Check for non-utf8 characters ----
 stopifnot("Invalid characters found!" = all(sapply(
     dplyr::select(sf::st_drop_geometry(fire_sf), dplyr::where(is.character)),
     function(x){validUTF8(x)}

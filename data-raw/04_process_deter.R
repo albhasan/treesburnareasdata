@@ -225,11 +225,20 @@ subarea_tb <- sarea_tb
 rm(sarea_flat_sf)
 rm(sarea_tb)
 
-# TODO: Check for non-utf8 characters.
-stopifnot("Invalid characters found!" = all(sapply(
-    dplyr::select(sf::st_drop_geometry(fire_sf), dplyr::where(is.character)),
+
+#---- TODO: Check for non-utf8 characters ----
+
+stopifnot("Invalid characters found in subarea_tb!" = all(sapply(
+    dplyr::select(sf::st_drop_geometry(subarea_tb), dplyr::where(is.character)),
     function(x){validUTF8(x)}
 )))
+
+stopifnot("Invalid characters found in subarea_sf!" = all(sapply(
+    dplyr::select(sf::st_drop_geometry(subarea_sf), dplyr::where(is.character)),
+    function(x){validUTF8(x)}
+)))
+
+
 
 #---- Save ----
 
