@@ -9,6 +9,7 @@ Description: This project contains the data analysed by the treesburnedareas
     (DETER) of the National Institute for Space Research (INPE). These data
     includes the deforestation warning in the brazilian Amazon since 2016.
 Depends: R (>= 4.0.0)
+LazyData: true
 URL: https://github.com/albhasan/treesburnareasdata
 BugReports: https://github.com/albhasan/treesburnareasdata/issues
 License: MIT + file LICENSE 
