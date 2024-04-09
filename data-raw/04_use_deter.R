@@ -18,7 +18,10 @@ library(treemapify)
 library(tidyr)
 library(units)
 
-library(treesburnareas)
+
+
+# NOTE: 
+# - Do NOT use data.table because it scrambles the data in the sf object.
 
 
 #---- Configuration ----
@@ -50,10 +53,12 @@ stopifnot("Temporal directory not found!" = dir.exists(tmp_dir))
 # Get PRODES codes.
 prodes_codes <-
     treesburnareas::get_prodes_codes() %>%
+    # NOTE: This throws a warning, but the filter takes care of introduced NAs.
     tidyr::pivot_longer(cols = -tidyselect::any_of("prodes_code"),
                         names_to = c("X1", "source", "year"),
                         names_sep = "_",
                         values_to = "prodes_class") %>%
+    suppressWarnings() %>%
     dplyr::filter(source == "shp",
                   year == prodes_year) %>%
     dplyr::select(prodes_code, prodes_class) %>%
@@ -81,7 +86,7 @@ sarea_sf <-
     ensurer::ensure_that(nrow(.) == length(unique(.$subarea_id)),
                          err_desc = "subarea_id isn't unique!") %>%
     dplyr::mutate(VIEW_DATE = lubridate::as_date(VIEW_DATE),
-                  year = compute_prodes_year(VIEW_DATE)) %>%
+                  year = treesburnareas::compute_prodes_year(VIEW_DATE)) %>%
     dplyr::filter(!is.na(xy_id),
                   !is.na(subarea_ha),
                   subarea_ha > 0,
@@ -92,21 +97,20 @@ sarea_sf <-
     dplyr::select(-x, -y) %>%
     dplyr::distinct(xy_id, VIEW_DATE, .keep_all = TRUE) %>%
     dplyr::arrange(xy_id, VIEW_DATE) %>%
+    # NOTE: This throws a warning because sf::st_centroid assumes attributes 
+    #       are constant over geometries
     (function(x) {
-        stopifnot("Scrambled subarea ids found!" = test_centroids(x))
+        stopifnot("Scrambled subarea ids found!" = 
+                      treesburnareas::test_centroids(x))
         invisible(x)
-    })
+    }) %>%
+    suppressWarnings()
+
 
 sarea_tb <-
     sarea_sf %>%
     sf::st_drop_geometry()
 
-# NOTE: Using data.table could scramble the data in the sf object.
-sarea_sf %>%
-    (function(x) {
-        stopifnot("Scrambled subarea ids found!" = test_centroids(x))
-        invisible(x)
-    })
 
 stopifnot("Subarea missmatch!" = nrow(sarea_sf) == nrow(sarea_tb))
 stopifnot("Some subareas are missing subarea_id" =
@@ -136,7 +140,7 @@ if (reuse_temporal_files && file.exists(subarea_prodes_file)) {
     subarea_prodes <-
         terra::extract(x = terra::rast(prodes_raster),
                        y = terra::vect(sarea_flat_sf),
-                       fun = the_mode,
+                       fun = treesburnareas::the_mode,
                        ID = FALSE,
                        weights = FALSE,
                        exact = FALSE,
@@ -226,7 +230,7 @@ rm(sarea_flat_sf)
 rm(sarea_tb)
 
 
-#---- TODO: Check for non-utf8 characters ----
+#---- Check for non-utf8 characters ----
 
 stopifnot("Invalid characters found in subarea_tb!" = all(sapply(
     dplyr::select(sf::st_drop_geometry(subarea_tb), dplyr::where(is.character)),
